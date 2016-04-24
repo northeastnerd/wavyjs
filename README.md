@@ -1,2 +1,2 @@
 # wavyjs
-RIFF Wav file manipulation routines
+javascript RIFF Wav file manipulation routines
