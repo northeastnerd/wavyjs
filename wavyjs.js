@@ -39,7 +39,7 @@ wavyjs.count = 0;
 wavyjs.prototype.make = function(channels, smprate, bits, samples){
   var total    = 44 + samples * channels * bits / 8;
   var bytes    = bits / 8 * channels;
-  var byterate = smprate * bits / 8;
+  var byterate = smprate * bits / 8 * channels;
   this.raw     = new ArrayBuffer(total);
   var snd      = new DataView(this.raw);
                                        // content                endian-ness
@@ -59,32 +59,48 @@ wavyjs.prototype.make = function(channels, smprate, bits, samples){
 };
 
 // getters for header fields
-wavyjs.prototype.len = function(){
+wavyjs.prototype.bytes = function(){
+  if(this.raw == null)
+    return 0;
   var snd = new DataView(this.raw);
   var len = snd.getInt32(40, true);
   return len; 
 };
 
+wavyjs.prototype.len = function(){
+  if(this.raw == null)
+    return 0;
+  var snd = new DataView(this.raw);
+  var len = snd.getInt32(40, true);
+  return len / this.channels(this.raw) / (this.bits(this.raw) / 8); 
+};
+
 wavyjs.prototype.channels = function(){
+  if(this.raw == null)
+    return 0;
   var snd = new DataView(this.raw);
   var chs = snd.getInt16(22, true);
   return chs; 
 };
 
 wavyjs.prototype.rate = function(){
+  if(this.raw == null)
+    return 0;
   var snd = new DataView(this.raw);
   var rat = snd.getInt32(24, true);
   return rat; 
 };
 
 wavyjs.prototype.bits = function(){
+  if(this.raw == null)
+    return 0;
   var snd = new DataView(this.raw);
   var num = snd.getInt16(34, true);
   return num; 
 };
 
 // waveform setters / getters
-wavyjs.prototype.set_data = function(idx, right, data){
+wavyjs.prototype.set_sample = function(idx, right, data){
   var numbits = this.bits(this.raw);
   var chans   = this.channels(this.raw);
   var snd     = new DataView(this.raw);
@@ -100,11 +116,13 @@ wavyjs.prototype.set_data = function(idx, right, data){
     snd.setInt32(offset, data, true);
 };
 
-wavyjs.prototype.get_data = function(idx, right){
+wavyjs.prototype.get_sample = function(idx, right){
   var numbits = this.bits(this.raw);
-  var chans   = this.chans(this.raw);
+  var chans   = this.channels(this.raw);
   var snd     = new DataView(this.raw);
   var offset  = (chans * numbits / 8) * idx + 44 + right * numbits / 8;
+  if(offset > (this.raw.byteLength - (numbits / 8)))
+    return 0;
   var data;
   if(numbits == 8)
     data = snd.getInt8(offset);
