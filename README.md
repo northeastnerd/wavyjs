@@ -7,4 +7,4 @@ Working for simple Wav files, needs improved support for non-standard headers.
 # Usage
 These routines allow creation and manipulation of Wav file structures in browser memory. The intended use is to generate sounds from algorithms and use them with sounds loaded from files or URLs. Merged results can be saved as Wav files for whatever use.
 
-The example HTML file has a file loader and a waveform generator. The waveform is used to envelope / amplitude modulate the loaded file and you can play and save the result.
+There is an example HTML file that shows intended use with a Wav file loader and a tremelo generator. The loaded sound is amplitude modulated by a sin wave with a user selected frequency. The original and "tremulated" sounds can be played and the modulated sound saved to a file.
