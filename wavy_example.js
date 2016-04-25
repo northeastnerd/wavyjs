@@ -88,7 +88,6 @@ function save(name){
 };
 
 function show_params(){
-hex_dump("user", user.audio(), 44);
   out.innerHTML = "File: " + document.getElementById("user").name + "<br>";
   out.innerHTML += "Audio Channels: " + user.channels() + "<br>";
   out.innerHTML += "Bits / Sample: " + user.bits() + "<br>";
