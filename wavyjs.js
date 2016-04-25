@@ -22,6 +22,8 @@
 function wavyjs(){
   this.me = wavyjs.count++;
   this.raw = null;
+  this.fmt = 0;
+  this.data = 0;
 };
 
 // instance counter
@@ -42,15 +44,17 @@ wavyjs.prototype.make = function(channels, smprate, bits, samples){
   var byterate = smprate * bits / 8 * channels;
   this.raw     = new ArrayBuffer(total);
   var snd      = new DataView(this.raw);
+  this.fmt     = 12;
+  this.data    = 36;
                                        // content                endian-ness
-  snd.setInt32(0,  0x52494646, false); // "RIFF"                 big
-  snd.setInt32(4,  total - 8, true);   // file size - 8 (bytes)  little
-  snd.setInt32(8,  0x57415645, false); // "WAVE"                 big
-  snd.setInt32(12, 0x666d7420, false); // "fmt "                 big
-  snd.setInt16(16, 16, true);          // header size            little
-  snd.setInt16(20, 1, true);           // format tag 1 = PCM     little
-  snd.setInt16(22, channels, true);    // channels 1 = mono      little
-  snd.setInt32(24, smprate, true);     // sample rate            little
+  snd.setInt32(0,  0x52494646, false); // "RIFF"                 big     |
+  snd.setInt32(4,  total - 8, true);   // file size - 8 (bytes)  little  |
+  snd.setInt32(8,  0x57415645, false); // "WAVE"                 big     L____ up to here must match exact
+  snd.setInt32(12, 0x666d7420, false); // "fmt "                 big     <---- might not be fmt chunk, skip unknown
+  snd.setInt16(16, 16, true);          // header size            little        LIST chunk in ex, len = 180(xb4)
+  snd.setInt16(20, 1, true);           // format tag 1 = PCM     little  <---- len of fmt chunk in ex is 18, not 16
+  snd.setInt16(22, channels, true);    // channels 1 = mono      little  <---- force invsible INFO? chunk w/"wavyjs" 
+  snd.setInt32(24, smprate, true);     // sample rate            little  <---- sort out info/list headers: title in plyr
   snd.setInt32(28, byterate, true);    // bytes/sec              little
   snd.setInt16(32, bytes, true);       // bytes/sample           little
   snd.setInt16(34, bits, true);        // bits/sample            little
@@ -63,7 +67,7 @@ wavyjs.prototype.bytes = function(){
   if(this.raw == null)
     return 0;
   var snd = new DataView(this.raw);
-  var len = snd.getInt32(40, true);
+  var len = snd.getInt32(this.data + 4, true);
   return len; 
 };
 
@@ -71,7 +75,7 @@ wavyjs.prototype.len = function(){
   if(this.raw == null)
     return 0;
   var snd = new DataView(this.raw);
-  var len = snd.getInt32(40, true);
+  var len = snd.getInt32(this.data + 4, true);
   return len / this.channels(this.raw) / (this.bits(this.raw) / 8); 
 };
 
@@ -79,7 +83,7 @@ wavyjs.prototype.channels = function(){
   if(this.raw == null)
     return 0;
   var snd = new DataView(this.raw);
-  var chs = snd.getInt16(22, true);
+  var chs = snd.getInt16(this.fmt + 10, true);
   return chs; 
 };
 
@@ -87,7 +91,7 @@ wavyjs.prototype.rate = function(){
   if(this.raw == null)
     return 0;
   var snd = new DataView(this.raw);
-  var rat = snd.getInt32(24, true);
+  var rat = snd.getInt32(this.fmt + 12, true);
   return rat; 
 };
 
@@ -95,7 +99,7 @@ wavyjs.prototype.bits = function(){
   if(this.raw == null)
     return 0;
   var snd = new DataView(this.raw);
-  var num = snd.getInt16(34, true);
+  var num = snd.getInt16(this.fmt + 22, true);
   return num; 
 };
 
@@ -104,7 +108,7 @@ wavyjs.prototype.set_sample = function(idx, right, data){
   var numbits = this.bits(this.raw);
   var chans   = this.channels(this.raw);
   var snd     = new DataView(this.raw);
-  var offset  = (chans * numbits / 8) * idx + 44 + right * numbits / 8;
+  var offset  = (chans * numbits / 8) * idx + this.data + 4 + right * numbits / 8;
   if((offset >= this.raw.byteLength) ||
      (offset == undefined))
     return;
@@ -120,7 +124,7 @@ wavyjs.prototype.get_sample = function(idx, right){
   var numbits = this.bits(this.raw);
   var chans   = this.channels(this.raw);
   var snd     = new DataView(this.raw);
-  var offset  = (chans * numbits / 8) * idx + 44 + right * numbits / 8;
+  var offset  = (chans * numbits / 8) * idx + this.data + 4 + right * numbits / 8;
   if(offset > (this.raw.byteLength - (numbits / 8)))
     return 0;
   var data;
@@ -177,6 +181,16 @@ wavyjs.prototype.load_file = function(selected, ok_callb, err_callb) {
       reader.onload = (function(afile){
         return function(e){
           wavptr.raw = e.target.result;
+          var snd    = new DataView(wavptr.raw);
+          wavptr.fmt = 12;
+          wavptr.data = 36;
+          for(var y = 0; y < 1024; y++){
+            var sig = snd.getInt32(y, false);
+            if(sig == 0x666d7420)
+              wavptr.fmt = y;
+            if(sig == 0x64617461)
+              wavptr.data = y;
+	  }
           ok_callb();
 	};
       })(files[x]);
