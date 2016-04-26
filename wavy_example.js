@@ -54,11 +54,9 @@ sound.init(err);
 var user     = new wavyjs; 
 var envelope = new wavyjs;
 
-document.body.onload = function(){
-  document.getElementById("user").onchange = function(){
-    var f = document.getElementById("user");
-    user.load_file(f, function(){console.log("wav file loaded");show_params();});
-  };
+document.getElementById("user").onchange = function(){
+  var f = document.getElementById("user");
+  user.load_file(f, function(){console.log("wav file loaded");show_params();});
 };
 
 function make_envelope(){
