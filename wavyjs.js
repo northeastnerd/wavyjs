@@ -139,7 +139,12 @@ wavyjs.prototype.get_sample = function(idx, right){
 };
 
 wavyjs.prototype.audio = function(){
-  return this.raw;
+  var cp = new ArrayBuffer(this.raw.byteLength);
+  var dst = new Uint8Array(cp);
+  var src = new Uint8Array(this.raw);
+  for(x = 0; x < cp.byteLength; x++)
+    dst[x] = src[x];
+  return cp;
 };
 
 // file i/o routines
