@@ -157,7 +157,7 @@ wavyjs.prototype.save = function(name) {
   a.href = url;
   a.download = name;
   a.click();
-  window.URL.revokeObjectURL(url);
+//  window.URL.revokeObjectURL(url);
 };
 
 wavyjs.prototype.load_url = function(url, ok_callb, err_callb) {
