@@ -14,3 +14,5 @@ These routines allow creation and manipulation of Wav file structures in browser
 There is an example HTML file that shows intended use with a Wav file loader and a tremelo generator. The loaded sound is amplitude modulated by a sin wave with a user selected frequency. The original and "tremulated" sounds can be played and the modulated sound saved to a file.
 
 The example reads a Wav file and traverses it to find the peak amplitude which is reported with sampling information. You can enter a tremelo frequency (try 0.3) and click Play Tremelo to here how it sounds and save it to a Wav file with the Save button. This isn't a useful app, just a way to try the Wav library.
+
+Have fun!
