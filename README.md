@@ -12,7 +12,7 @@ Have fun!
 
 # Status
 ## Version 0.1
-Performance enhancements done, roughly 3x faster now, it is usable for song length material. Traversing a 4 minute CD quality track takes about 10 seconds on the machine described below (not speedy). Read-modify-write on the same track takes 20 seconds.
+Performance enhancements done, roughly 3x faster now, it is usable for song length material. Traversing a 4 minute CD quality track takes about 10 seconds on the machine described below (not speedy). Read-modify-write on the same track takes 20 seconds (done in the demo).  On a desktop quad core Q8400 cpu with 8 gB of memory it takes about 7 seconds for the r-m-w (I guess it's time for a new laptop :).
 
 The interface changed to include push and pop sample routines. They operate on an incrementing pointer that is set by the set and get sample routines, which are still there do index individual samples by location.
 
