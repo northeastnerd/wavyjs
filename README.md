@@ -1,6 +1,15 @@
 # wavyjs
 javascript RIFF Wav file manipulation routines
 
+# Usage
+These routines allow creation and manipulation of Wav file structures in browser memory. The intended use is to generate sounds from algorithms and use them with sounds loaded from files or URLs. Merged results can be saved as Wav files for whatever use.
+
+There is an example HTML file that shows intended use with a Wav file loader and a tremelo generator. The loaded sound is amplitude modulated by a sin wave with a user selected frequency on the first audio channel (ie, left in a stereo file). The original and "tremulated" sounds can be played and the modulated sound saved to a file.
+
+The example reads a Wav file and traverses it to find the peak amplitude which is reported with sampling information. You can enter a tremelo frequency (try 0.3) and click Play Tremelo to here how it sounds and save it to a Wav file with the Save button. This isn't a useful app, just a way to try the Wav library.
+
+Have fun!
+
 # Status
 ## Version 0.1
 Performance enhancements done, roughly 3x faster now, it is usable for song length material. Traversing a 4 minute CD quality track takes about 10 seconds on the machine described below (not speedy). Read-modify-write on the same track takes 20 seconds.
@@ -14,11 +23,3 @@ Performance with large files (40 MB) is an issue - traversing a 40.9 MB file fro
 
 There is a live demo here: http://northeastnerd.net/northeastnerd.html?post=2
 
-# Usage
-These routines allow creation and manipulation of Wav file structures in browser memory. The intended use is to generate sounds from algorithms and use them with sounds loaded from files or URLs. Merged results can be saved as Wav files for whatever use.
-
-There is an example HTML file that shows intended use with a Wav file loader and a tremelo generator. The loaded sound is amplitude modulated by a sin wave with a user selected frequency. The original and "tremulated" sounds can be played and the modulated sound saved to a file.
-
-The example reads a Wav file and traverses it to find the peak amplitude which is reported with sampling information. You can enter a tremelo frequency (try 0.3) and click Play Tremelo to here how it sounds and save it to a Wav file with the Save button. This isn't a useful app, just a way to try the Wav library.
-
-Have fun!
