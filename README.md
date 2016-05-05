@@ -2,12 +2,12 @@
 javascript RIFF Wav file manipulation routines
 
 # Status
-Version 0.1
+## Version 0.1
 Performance enhancements done, roughly 3x faster now, it is usable for song length material. Traversing a 4 minute CD quality track takes about 10 seconds on the machine described below (not speedy). Read-modify-write on the same track takes 20 seconds.
 
 The interface changed to include push and pop sample routines. They operate on an incrementing pointer that is set by the set and get sample routines, which are still there do index individual samples by location.
 
-Version 0.0
+## Version 0.0
 The library works in all browsers, the demo is working for all the Wav files I tried with Chrome v.50, Firefox 46 and Edge v25.10586.0.0.
 
 Performance with large files (40 MB) is an issue - traversing a 40.9 MB file from begin to end takes roughly 66 seconds on a dual core N2840 running Chrome 50 and traversing, manipulating and writing a modified version of the same file in memory takes 110 seconds. Current performance is ~700 KB/s. For small Wav files (samples) it's reasonable, for larger files (songs) this may not be an ideal solution.
