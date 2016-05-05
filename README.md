@@ -2,9 +2,9 @@
 javascript RIFF Wav file manipulation routines
 
 # Usage
-These routines allow creation and manipulation of Wav file structures in browser memory. The intended use is to generate sounds from algorithms and use them with sounds loaded from files or URLs. Merged results can be saved as Wav files for whatever use.
+These routines do creation and manipulation of Wav file structures in browser memory. The intended uses are for generating sounds from algorithms and / or manipulating existing sound files loaded from files or URLs. Modified results can be saved as Wav files or played as desired.
 
-There is an example HTML file that shows intended use with a Wav file loader and a tremelo generator. The loaded sound is amplitude modulated by a sin wave with a user selected frequency on the first audio channel (ie, left in a stereo file). The original and "tremulated" sounds can be played and the modulated sound saved to a file.
+The project has an example HTML and script file that shows intended use with a Wav file loader and a tremelo generator. The loaded sound is amplitude modulated by a sin wave with a user selected frequency on the first audio channel (ie, left in a stereo file). The original and "tremulated" sounds can be played and the modulated sound saved to a file.
 
 You can create Wav structures from scratch by calling the make() method with desired waveform parameters. The wave properties are attached to the returned object along with allocated space for waveform data. The same structure is returned when reading a Wav file from disk with the allocated space filled in from audio in the file.
 
