@@ -8,7 +8,7 @@ Performance enhancements done, roughly 3x faster now, it is usable for song leng
 The interface changed to include push and pop sample routines. They operate on an incrementing pointer that is set by the set and get sample routines, which are still there do index individual samples by location.
 
 ## Version 0.0
-The library works in all browsers, the demo is working for all the Wav files I tried with Chrome v.50, Firefox 46 and Edge v25.10586.0.0.
+The library works in all browsers, the demo is working for all the Wav files I tried with Chrome v.50, Firefox 46 and Edge v25.10586.0.0. No formal testing and I believe there are functional gaps (all permutations of Wav formats).
 
 Performance with large files (40 MB) is an issue - traversing a 40.9 MB file from begin to end takes roughly 66 seconds on a dual core N2840 running Chrome 50 and traversing, manipulating and writing a modified version of the same file in memory takes 110 seconds. Current performance is ~700 KB/s. For small Wav files (samples) it's reasonable, for larger files (songs) this may not be an ideal solution.
 
