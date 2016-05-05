@@ -21,9 +21,18 @@
 
 function wavyjs(){
   this.me = wavyjs.count++;
-  this.raw = null;
+  this.rptr = 0;
+  this.wptr = 0;
   this.fmt = 0;
   this.data = 0;
+  this.rate = 0;
+  this.channels = 0;
+  this.bits = 0;
+  this.bytes = 0;
+  this.inc = 0;
+  this.samples = 0;
+  this.raw = null;
+  this.sound = null;
 };
 
 // instance counter
@@ -39,102 +48,96 @@ wavyjs.count = 0;
 // are stored little endian (LSB first) because this is 
 // a Windows format.
 wavyjs.prototype.make = function(channels, smprate, bits, samples){
-  var total    = 44 + samples * channels * bits / 8;
-  var bytes    = bits / 8 * channels;
-  var byterate = smprate * bits / 8 * channels;
-  this.raw     = new ArrayBuffer(total);
-  var snd      = new DataView(this.raw);
-  this.fmt     = 12;
-  this.data    = 36;
-                                       // content                endian-ness
-  snd.setInt32(0,  0x52494646, false); // "RIFF"                 big     |
-  snd.setInt32(4,  total - 8, true);   // file size - 8 (bytes)  little  |
-  snd.setInt32(8,  0x57415645, false); // "WAVE"                 big     L____ up to here must match exact
-  snd.setInt32(12, 0x666d7420, false); // "fmt "                 big     <---- might not be fmt chunk, skip unknown
-  snd.setInt16(16, 16, true);          // header size            little        LIST chunk in ex, len = 180(xb4)
-  snd.setInt16(20, 1, true);           // format tag 1 = PCM     little  <---- len of fmt chunk in ex is 18, not 16
-  snd.setInt16(22, channels, true);    // channels 1 = mono      little  <---- force invsible INFO? chunk w/"wavyjs" 
-  snd.setInt32(24, smprate, true);     // sample rate            little  <---- sort out info/list headers: title in plyr
-  snd.setInt32(28, byterate, true);    // bytes/sec              little
-  snd.setInt16(32, bytes, true);       // bytes/sample           little
-  snd.setInt16(34, bits, true);        // bits/sample            little
-  snd.setInt32(36, 0x64617461, false); // "data"                 big
-  snd.setInt32(40, total - 44, true);  // data length            little
-};
-
-// getters for header fields
-wavyjs.prototype.bytes = function(){
-  if(this.raw == null)
-    return 0;
-  var snd = new DataView(this.raw);
-  var len = snd.getInt32(this.data + 4, true);
-  return len; 
-};
-
-wavyjs.prototype.len = function(){
-  if(this.raw == null)
-    return 0;
-  var snd = new DataView(this.raw);
-  var len = snd.getInt32(this.data + 4, true);
-  return len / this.channels(this.raw) / (this.bits(this.raw) / 8); 
-};
-
-wavyjs.prototype.channels = function(){
-  if(this.raw == null)
-    return 0;
-  var snd = new DataView(this.raw);
-  var chs = snd.getInt16(this.fmt + 10, true);
-  return chs; 
-};
-
-wavyjs.prototype.rate = function(){
-  if(this.raw == null)
-    return 0;
-  var snd = new DataView(this.raw);
-  var rat = snd.getInt32(this.fmt + 12, true);
-  return rat; 
-};
-
-wavyjs.prototype.bits = function(){
-  if(this.raw == null)
-    return 0;
-  var snd = new DataView(this.raw);
-  var num = snd.getInt16(this.fmt + 22, true);
-  return num; 
+  this.channels = channels;
+  this.rate     = smprate;
+  this.bits     = bits;
+  this.inc      = bits / 8;
+  this.bytes    = this.inc * channels;
+  this.inc      = bits / 8;
+  this.samples  = samples;
+  var total     = 44 + samples * channels * bits / 8;
+  var byterate  = smprate * bits / 8 * channels;
+  this.raw      = new ArrayBuffer(total);
+  this.sound    = new DataView(this.raw);
+  this.fmt      = 12;
+  this.data     = 36;
+  this.rptr     = 40;
+  this.wptr     = 40;
+                                              // content                endian-ness
+  this.sound.setInt32(0,  0x52494646, false); // "RIFF"                 big     |
+  this.sound.setInt32(4,  total - 8, true);   // file size - 8 (bytes)  little  |
+  this.sound.setInt32(8,  0x57415645, false); // "WAVE"                 big     L____ up to here must match exact
+  this.sound.setInt32(12, 0x666d7420, false); // "fmt "                 big     <---- might not be fmt chunk, skip unknown
+  this.sound.setInt16(16, 16, true);          // header size            little        LIST chunk in ex, len = 180(xb4)
+  this.sound.setInt16(20, 1, true);           // format tag 1 = PCM     little  <---- len of fmt chunk in ex is 18, not 16
+  this.sound.setInt16(22, channels, true);    // channels 1 = mono      little  <---- force invsible INFO? chunk w/"wavyjs" 
+  this.sound.setInt32(24, smprate, true);     // sample rate            little  <---- sort out info/list headers: title in plyr
+  this.sound.setInt32(28, byterate, true);    // bytes/sec              little
+  this.sound.setInt16(32, this.bytes, true);  // bytes/sample           little
+  this.sound.setInt16(34, bits, true);        // bits/sample            little
+  this.sound.setInt32(36, 0x64617461, false); // "data"                 big
+  this.sound.setInt32(40, total - 44, true);  // data length            little
 };
 
 // waveform setters / getters
-wavyjs.prototype.set_sample = function(idx, right, data){
-  var numbits = this.bits(this.raw);
-  var chans   = this.channels(this.raw);
-  var snd     = new DataView(this.raw);
-  var offset  = (chans * numbits / 8) * idx + this.data + 4 + right * numbits / 8;
+wavyjs.prototype.set_sample = function(idx, chan, data){
+  var offset = (this.channels * this.bits / 8) * idx + this.data + 4 + chan * this.bits / 8;
+  this.wptr = offset;
   if((offset >= this.raw.byteLength) ||
      (offset == undefined))
     return;
-  if(numbits == 8)
-    snd.setInt8(offset, data);
-  else if(numbits == 16)
-    snd.setInt16(offset, data, true);
-  else if(numbits == 32)
-    snd.setInt32(offset, data, true);
+  if(this.bits == 8)
+    this.sound.setInt8(offset, data);
+  else if(this.bits == 16)
+    this.sound.setInt16(offset, data, true);
+  else if(this.bits == 32)
+    this.sound.setInt32(offset, data, true);
 };
 
-wavyjs.prototype.get_sample = function(idx, right){
-  var numbits = this.bits(this.raw);
-  var chans   = this.channels(this.raw);
-  var snd     = new DataView(this.raw);
-  var offset  = (chans * numbits / 8) * idx + this.data + 4 + right * numbits / 8;
-  if(offset > (this.raw.byteLength - (numbits / 8)))
+wavyjs.prototype.push_sample = function(data){
+  if((this.wptr >= this.raw.byteLength) ||
+     (this.wptr == undefined))
+    return;
+
+  if(this.bits == 8)
+    this.sound.setInt8(this.wptr, data);
+  else if(this.bits == 16)
+    this.sound.setInt16(this.wptr, data, true);
+  else if(this.bits == 32)
+    this.sound.setInt32(this.wptr, data, true);
+  this.wptr += this.inc;
+};
+
+wavyjs.prototype.get_sample = function(idx, chan){
+  var offset = (this.channels * this.bits / 8) * idx + this.data + 4 + chan * this.bits / 8;
+  this.rptr = offset;
+  if(offset > (this.raw.byteLength - (this.bits / 8)))
     return 0;
   var data;
-  if(numbits == 8)
-    data = snd.getInt8(offset);
-  else if(numbits == 16)
-    data = snd.getInt16(offset, true);
-  else if(numbits == 32)
-    data = snd.setInt32(offset, true);
+  if(this.bits == 8)
+    data = this.sound.getInt8(offset);
+  else if(this.bits == 16)
+    data = this.sound.getInt16(offset, true);
+  else if(this.bits == 32)
+    data = this.sound.setInt32(offset, true);
 
+  return data;
+};
+
+wavyjs.prototype.pop_sample = function(){
+  if((this.rptr >= this.raw.byteLength) ||
+     (this.rptr == undefined))
+    return NaN;
+
+  var data;
+  if(this.bits == 8)
+    data = this.sound.getInt8(this.rptr);
+  else if(this.bits == 16)
+    data = this.sound.getInt16(this.rptr, true);
+  else if(this.bits == 32)
+    data = this.sound.setInt32(this.rptr, true);
+
+  this.rptr += this.inc;
   return data;
 };
 
@@ -186,16 +189,17 @@ wavyjs.prototype.load_file = function(selected, ok_callb, err_callb) {
       reader.onload = (function(afile){
         return function(e){
           wavptr.raw = e.target.result;
-          var snd    = new DataView(wavptr.raw);
+          wavptr.sound = new DataView(wavptr.raw);
           wavptr.fmt = 12;
           wavptr.data = 36;
           for(var y = 0; y < 1024; y++){
-            var sig = snd.getInt32(y, false);
+            var sig = wavptr.sound.getInt32(y, false);
             if(sig == 0x666d7420)
               wavptr.fmt = y;
             if(sig == 0x64617461)
               wavptr.data = y;
 	  }
+          wavptr.parse_header();
           ok_callb();
 	};
       })(files[x]);
@@ -206,3 +210,17 @@ wavyjs.prototype.load_file = function(selected, ok_callb, err_callb) {
   }
 }
 
+wavyjs.prototype.parse_header = function(){
+  if(this.raw == null)
+    return 0;
+  this.sound = new DataView(this.raw);
+  this.bytes = this.sound.getInt16(this.fmt + 20, true);
+  this.channels = this.sound.getInt16(this.fmt + 10, true);
+  this.rate = this.sound.getInt32(this.fmt + 12, true);
+  this.bits = this.sound.getInt16(this.fmt + 22, true);
+  this.inc = this.bits / 8;
+  var len = this.sound.getInt32(4, true) - this.data - 4;
+  this.samples = len / this.channels / (this.bits / 8);
+  this.rptr = this.data + 4;
+  this.wptr = this.data + 4;
+}

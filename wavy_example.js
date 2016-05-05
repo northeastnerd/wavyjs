@@ -25,7 +25,7 @@ function err(e){
 }
 
 var html5_snd = function(){};
-html5_snd.prototype.audio_ctx    = null;
+html5_snd.prototype.audio_ctx = null;
 html5_snd.prototype.init = function(err_cb){
   try{
     window.AudioContext = window.AudioContext||window.webkitAudioContext;
@@ -51,54 +51,76 @@ html5_snd.prototype.play = function(snd){
 var sound = new html5_snd;
 sound.init(err);
 
-var user     = new wavyjs; 
-var envelope = new wavyjs;
+var user = new wavyjs; 
+var tremelo = new wavyjs;
 
 document.getElementById("user").onchange = function(){
   var f = document.getElementById("user");
+  var start = new Date();
   user.load_file(f, function(){console.log("wav file loaded");show_params();});
+  elapsed_time(start);
 };
 
-function make_envelope(){
-  delete envelope;
-  envelope = new wavyjs;
-  envelope.make(user.channels(), user.rate(), user.bits(), user.len());
-  var p1 = document.getElementById("period1").value * user.rate();
-  var len = envelope.len();
+function do_tremelo(){
+  delete tremelo;
+  tremelo = new wavyjs;
+  tremelo.make(user.channels, user.rate, user.bits, user.samples);
+  var p1 = document.getElementById("period1").value * user.rate;
+  var len = tremelo.samples;
+  var amp = user.get_sample(0, 0);
   for(var x = 0; x < len; x++){
-    for(var c = 0; c < envelope.channels(); c++){
-      var amp = user.get_sample(x, c);
-          amp = parseInt(amp * Math.cos(x / p1 * 2 * 3.14159));
-      envelope.set_sample(x, c, amp);
+    amp = user.pop_sample();
+    amp = parseInt(amp * Math.cos(x / p1 * 2 * 3.14159));
+    tremelo.push_sample(amp);
+    for(var ch = 1; ch < user.channels; ch++){
+      amp = user.pop_sample();
+      tremelo.push_sample(amp);
     }
   }
 }
 
+function process(){
+  console.log("creating tremelo");
+  var start = new Date();
+  do_tremelo();
+  console.log("tremelo ready");
+  elapsed_time(start);
+};
+
 function play(name){
   if(name == "user")
     sound.play(user.audio());
-  if(name == "envelope"){
-    make_envelope();
-    sound.play(envelope.audio());
+  if(name == "tremelo"){
+    console.log("playing sound");
+    sound.play(tremelo.audio());
+    console.log("sound playing");
   }
 };
 
 function save(name){
-  envelope.save(name);
+  console.log("saving wav file");
+  tremelo.save(name);
+  console.log("saved");
 };
 
 function show_params(){
   out.innerHTML = "File: " + document.getElementById("user").name + "<br>";
-  out.innerHTML += "Audio Channels: " + user.channels() + "<br>";
-  out.innerHTML += "Bits / Sample: " + user.bits() + "<br>";
-  out.innerHTML += "Samples: " + user.len() + "<br>";
-  var max = 0;
-  for(var x = 0; x < user.len(); x++)
-    for(var c = 0; c < user.channels(); c++)
-      if(user.get_sample(x, c) > max)
-	max = user.get_sample(x, c);
+  out.innerHTML += "Audio Channels: " + user.channels + "<br>";
+  out.innerHTML += "Bits / Sample: " + user.bits + "<br>";
+  out.innerHTML += "Samples: " + user.samples + "<br>";
+  var max = user.get_sample(0, 0);
+  var data;
+  for(var x = 0; x < user.samples; x++){
+    data = user.pop_sample();
+    if(data > max)
+      max = data;
+  }
 
-  var lim = Math.pow(2, (user.bits() - 1));
+  var lim = Math.pow(2, (user.bits - 1));
   out.innerHTML += "Peak: " + max + " of " + lim + "<br>";
 }
 
+function elapsed_time(start){
+  var end = new Date();
+  console.log("elapsed time: " + (end - start) / 1000.0 + " seconds");
+}
