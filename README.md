@@ -20,6 +20,8 @@ Performance enhancements done, roughly 3x faster now, it is usable for song leng
 
 The interface changed to include push and pop sample routines that auto-increment write and read pointers. They operate on single samples so the caller has to deal with unique channels (ie, if you push the left channel data in a stereo file the write pointer advances to the right channel not the next left channel sample). You can set the pointers by calling set_sample() or get_sample() and providing an index. 
 
+Still no tests, and expect there are some unsupported formats as a result.
+
 ## Version 0.0
 The library works in all browsers, the demo is working for all the Wav files I tried with Chrome v.50, Firefox 46 and Edge v25.10586.0.0. No formal testing and I believe there are functional gaps (all permutations of Wav formats).
 
