@@ -16,7 +16,7 @@ Have fun!
 
 # Status
 ## Version 0.1
-Performance enhancements done, it is 5x-6x faster now, it is usable for song length material. Traversing a 4 minute CD quality track takes about 10 seconds on the machine described below (not speedy). Read-modify-write on the same track takes 20 seconds (done in the demo).  On a desktop quad core Q8400 cpu with 8 gB of memory running Chrome it takes about 7 seconds for the r-m-w (I guess it's time for a new laptop :). Firefox takes 9 seconds on the same conversion and plays fine, the Edge browser takes 45 seconds for the same conversion and is persnickity about playing the result.
+Performance enhancements done, it is 5x-6x faster now, and is usable for song length material. Traversing a 4 minute CD quality track takes about 10 seconds on the machine described below (not speedy). Read-modify-write on the same track takes 20 seconds (done in the demo).  On a desktop quad core Q8400 cpu with 8 gB of memory running Chrome it takes about 7 seconds for the r-m-w (I guess it's time for a new laptop :). Firefox takes 9 seconds on the same conversion and plays fine, the Edge browser takes 45 seconds for the same conversion and is persnickity about playing the result.
 
 The interface changed to include push and pop sample routines that auto-increment write and read pointers. They operate on single samples so the caller has to deal with unique channels (ie, if you push the left channel data in a stereo file the write pointer advances to the right channel not the next left channel sample). You can set the pointers by calling set_sample() or get_sample() and providing an index. 
 
