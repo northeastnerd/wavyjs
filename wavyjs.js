@@ -151,11 +151,11 @@ wavyjs.prototype.audio = function(){
 };
 
 // file i/o routines
-wavyjs.prototype.save = function(name) {
+wavyjs.prototype.save = function(data, name) {
   var a = document.createElement("a");
   document.body.appendChild(a);
   a.style = "display: none";
-  var blob = new Blob([this.raw], {type: "octet/stream"});
+  var blob = new Blob([data], {type: "octet/stream"});
   var url = window.URL.createObjectURL(blob);
   a.href = url;
   a.download = name;

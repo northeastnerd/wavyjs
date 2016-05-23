@@ -1,0 +1,255 @@
+<html>
+<head>
+</head>
+<title>RetroWav</title>
+<body>
+<h1>RetroWav</h1>
+Click on disk or cassette icons to load program or wav files.<br>
+Click arrows to convert or transfer between formats and devices.<br>
+Enjoy!<br>
+
+<table id="retrowav_icons">
+<tr align=middle>
+<td>Program File</td><td></td><td>Wav File</td><td></td><td>Target Machine<br></td>
+</tr>
+<tr align=middle>
+<td><img src="images/floppy.png" style="max-width:180px; cursor:pointer;" onclick="rw_load_prog()"></img></td>
+<td><table class="right_gray" id="rw_prog_to_wav"-->
+    <tr align=middle><td>Convert</td></tr></table>
+    <table class="left_gray" id="rw_wav_to_prog">
+    <tr align=middle><td>Convert</td></tr></table>   
+</td>
+<td><img src="images/cassette3.png" style="max-width:180px; cursor:pointer;" onclick="rw_load_wav()"></img></td>
+<td><table class="right_gray" id="rw_wav_load">
+    <tr align=middle><td>Load</td></tr></table>
+    <table class="left_gray" id="rw_wav_save" onclick="rw_target_save()" style="display:none">
+    <tr align=middle><td>Save</td></tr></table>
+</td>
+<td><img src="images/zx80_2.png" width="180px" height="auto" id="rw_target_zx80" style="display:none"></img>
+    <img src="images/zx81.png" width="180px" height="auto" id="rw_target_zx81" style="display:none"></img>
+    <img src="images/apple2.png" width="180px" height="auto" id="rw_target_apple2" style="display:none"></img>
+    <img src="images/trs80m1.png" width="180px" height="auto" id="rw_target_trs80m1" style="display:none"></img>
+    <img src="images/trs80m3.png" width="180px" height="auto" id="rw_target_trs80m3" style="display:none"></img>
+    <img src="images/unknown.png" height="auto" id="rw_target_unknown"></img>
+</td>
+</tr>
+<tr align=middle>
+<td><!-- Program File --><button id="save_prog" onclick="rw_save_prog()">Save</button></td>
+<td></td>
+<td><!-- Wav File --><button id="save_wav" onclick="rw_save_wav()">Save</button></td>
+<td></td>
+<td>
+  <select id="target">
+    <option value="ZX80">ZX80</option>
+    <option value="ZX81">ZX81</option>
+    <option value="Apple ][">Apple ][</option>
+    <option value="TRS80 Model I">TRS80 Model I</option>
+    <option value="TRS80 Model III">TRS80 Model III</option>
+  </select>
+</td>
+</tr>
+</table>
+<br>
+
+<div id="out"></div>
+<div id="msg"></div><br>
+</div>
+
+<input type=file id="prog_file" style="position: absolute; left: 10000px; top: 10000px;"></input><br>
+<script src="https://rawgit.com/northeastnerd/wavyjs/master/wavyjs.js"></script>
+<script src="scripts/retro_wav.js"></script>
+<script src="scripts/retro_wav_styles.js"></script>
+<script>
+function g(i){
+  return document.getElementById(i);
+}
+
+function err(e){
+  var msg = g("msg");
+  msg.innerHTML += e + "<br>";
+}
+
+var sound = new html5_snd;
+sound.init(err);
+var retro_prog = new retro_wav;
+
+g("prog_file").onchange = function(){
+  var f = g("prog_file");
+  retro_prog.load(f, rw_identify_prog);
+//  retro_prog.load(f, test_byte);
+};
+
+g("target").onchange = function(){
+  rw_show_target(g("target").value);
+};
+
+function rw_ctl_enable(id, img, cb){
+  var el = g(id);
+  el.className=img;
+  el.style.cursor = "pointer";
+  el.onclick = cb;
+}
+
+function rw_ctl_disable(id, img){
+  var el = g(id);
+  el.className=img;
+  el.style.cursor = "default";
+  el.onclick = null;
+}
+
+function rw_load_prog(){
+  g("prog_file").click();
+}
+
+function rw_identify_prog(){
+  console.log("program loaded");
+  rw_show_target("unknown");
+  rw_ctl_disable("rw_prog_to_wav", "right_gray");
+  rw_ctl_disable("rw_wav_save", "left_gray");
+  rw_ctl_disable("rw_wav_to_prog", "left_gray");
+  rw_ctl_disable("rw_wav_load", "right_gray");
+  retro_prog.prog_to_machine();
+//  hex_dump("prog", retro_prog.prog_file, 128);
+  if(retro_prog.machine == "unknown")
+    console.log("Unknown file format!");
+  else {
+    if(retro_prog.machine == "zx80"){
+      console.log("zx80 program detected");
+      rw_show_target("ZX80");
+    } else if(retro_prog.machine == "zx81_p_or_81"){
+      console.log("zx81 .p or .81 program detected");
+      rw_show_target("ZX81");
+    } else if(retro_prog.machine == "zx81_p81"){
+      console.log("zx81 .p81 program detected");
+      rw_show_target("ZX81");
+    }
+  }
+  if(retro_prog.machine != "unknown")
+    rw_ctl_enable("rw_prog_to_wav", "right_a", rw_convert_prog);
+};
+
+function rw_show_target(typ){
+  g("target").value = typ;
+  g("rw_target_unknown").style.display = "none";
+  g("rw_target_zx80").style.display = "none";
+  g("rw_target_zx81").style.display = "none";
+  g("rw_target_apple2").style.display = "none";
+  g("rw_target_trs80m1").style.display = "none";
+  g("rw_target_trs80m3").style.display = "none";
+  rw_ctl_enable("rw_wav_save", "left_b", rw_target_save);
+  if(typ == "ZX80")
+    g("rw_target_zx80").style.display = "block";
+  else if(typ == "ZX81")
+    g("rw_target_zx81").style.display = "block";
+  else if(typ == "Apple ][")
+    g("rw_target_apple2").style.display = "block";
+  else if(typ == "TRS80 Model I")
+    g("rw_target_trs80m1").style.display = "block";
+  else if(typ == "TRS80 Model III")
+    g("rw_target_trs80m3").style.display = "block";
+  else 
+    g("rw_target_unknown").style.display = "block";
+};
+
+function rw_convert_prog(){
+  if(retro_prog.machine == "unknown"){
+    rw_ctl_disable("rw_wav_load", "right_gray");
+    rw_ctl_disable("rw_wav_to_prog", "left_gray");
+  }
+  else {
+    if(retro_prog.machine == "zx80"){
+      console.log("Converting zx80 program to wav");
+      retro_prog.zx_prog_to_wav(80);
+    } else if(retro_prog.machine == "zx81_p_or_81"){
+      console.log("converting zx81 .p or .81 program to wav");
+      retro_prog.zx_prog_to_wav(81);
+    } else if(retro_prog.machine == "zx81_p81"){
+      console.log("converting zx81 .p81 program to wav");
+      retro_prog.zx_prog_to_wav(81);
+    }
+    console.log("conversion done");
+    rw_ctl_enable("rw_wav_load", "right_b", rw_play);
+    rw_ctl_enable("rw_wav_to_prog", "left_a", rw_convert_wav);
+  }
+};
+
+function rw_convert_wav(){
+  alert("not implemented");
+};
+
+function rw_target_save(){
+  alert("not implemented");
+};
+
+function rw_load_wav(){
+  alert("not implemented");
+};
+
+function rw_play(){
+  if(confirm("Make sure the audio / cassette cables are plugged in, start the target machine cassette load and click ok"))
+    sound.play(retro_prog.wav_file.audio());
+};
+
+function rw_save(){
+  console.log("saving wav file");
+  retro_prog.wav_file.save("retrowav.wav");
+}
+
+var capture = true;
+function rw_record(){
+  sound.record(capture);
+  capture = !capture;
+};
+
+function hex_dump(title, data, len){
+  if((typeof data == "undefined") ||(typeof len == "undefined"))
+    return;
+  out.innerHTML = title;
+  var view = new DataView(data);
+  var digits = "0123456789ABCDEF";
+  for(var x = 0; x < view.byteLength; x++){
+    if((x % 32) == 0)
+      out.innerHTML += "<br>";
+    var dig = digits[view.getUint8(x) >> 4];
+    dig    += digits[view.getUint8(x) & 0xf];
+    dig    += " ";
+    out.innerHTML += dig;
+    if(x > len)
+      return;
+  }
+}
+
+function rw_save_prog(){
+  if(typeof retro_prog.prog_file == "undefined"){
+    alert("Nothing to save, convert a wav file to a program first.");
+    return;
+  }
+}
+
+function rw_save_wav(){
+  if(typeof retro_prog.wav_file == "undefined"){
+    alert("Nothing to save, convert a program file to Wav format, load a Wav file or capture a saved program from your target machine first.");
+    return;
+  }
+  retro_prog.wav_file.save(retro_prog.wav_file.raw, "retro_wav.wav");
+}
+
+///////////////////////////////////
+function test_byte(){
+  var tim = 0;
+  wav = new wavyjs();
+  wav.make(1, 44100, 8, 100);
+  var smp = 0, us1, us2 = 0;
+  for(var x = 0; x < 10; x++){
+    smp = retro_prog.zx_byte(wav, 0, smp);
+    us1 = us2;
+    us2 = smp * (1000000 / wav.rate);
+    if((us2 - us1) != 20000.0)
+      console.log("exp 20000.0 got " + (us2 - us1));
+  }
+}
+
+</script>
+
+</body>
+</html>
