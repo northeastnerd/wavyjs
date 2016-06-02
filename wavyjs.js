@@ -87,7 +87,7 @@ wavyjs.prototype.set_sample = function(idx, chan, data){
      (offset == undefined))
     return;
   if(this.bits == 8)
-    this.sound.setInt8(offset, data);
+    this.sound.setUint8(offset, data + 128);
   else if(this.bits == 16)
     this.sound.setInt16(offset, data, true);
   else if(this.bits == 32)
@@ -100,7 +100,7 @@ wavyjs.prototype.push_sample = function(data){
     return;
 
   if(this.bits == 8)
-    this.sound.setInt8(this.wptr, data);
+    this.sound.setUint8(this.wptr, data) + 128;
   else if(this.bits == 16)
     this.sound.setInt16(this.wptr, data, true);
   else if(this.bits == 32)
@@ -115,7 +115,7 @@ wavyjs.prototype.get_sample = function(idx, chan){
     return 0;
   var data;
   if(this.bits == 8)
-    data = this.sound.getInt8(offset);
+    data = this.sound.getUint8(offset) - 128;
   else if(this.bits == 16)
     data = this.sound.getInt16(offset, true);
   else if(this.bits == 32)
@@ -131,7 +131,7 @@ wavyjs.prototype.pop_sample = function(){
 
   var data;
   if(this.bits == 8)
-    data = this.sound.getInt8(this.rptr);
+    data = this.sound.getUint8(this.rptr) - 128;
   else if(this.bits == 16)
     data = this.sound.getInt16(this.rptr, true);
   else if(this.bits == 32)
