@@ -100,7 +100,7 @@ wavyjs.prototype.push_sample = function(data){
     return;
 
   if(this.bits == 8)
-    this.sound.setUint8(this.wptr, data) + 128;
+    this.sound.setUint8(this.wptr, data + 128);
   else if(this.bits == 16)
     this.sound.setInt16(this.wptr, data, true);
   else if(this.bits == 32)
