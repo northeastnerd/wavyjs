@@ -27,5 +27,5 @@ The library works in all browsers, the demo is working for all the Wav files I t
 
 Performance with large files (40 MB) is an issue - traversing a 40.9 MB file from begin to end takes roughly 66 seconds on a dual core N2840 running Chrome 50 and traversing, manipulating and writing a modified version of the same file in memory takes 110 seconds. Current performance is ~700 KB/s. For small Wav files (samples) it's reasonable, for larger files (songs) this may not be an ideal solution.
 
-There is a live demo here: http://northeastnerd.net/northeastnerd.html?post=2
+There is a live demo here: http://northeastnerd.net/northeastnerd.html?post=3
 
