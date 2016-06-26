@@ -119,7 +119,7 @@ wavyjs.prototype.get_sample = function(idx, chan){
   else if(this.bits == 16)
     data = this.sound.getInt16(offset, true);
   else if(this.bits == 32)
-    data = this.sound.setInt32(offset, true);
+    data = this.sound.getInt32(offset, true);
 
   return data;
 };
@@ -135,7 +135,7 @@ wavyjs.prototype.pop_sample = function(){
   else if(this.bits == 16)
     data = this.sound.getInt16(this.rptr, true);
   else if(this.bits == 32)
-    data = this.sound.setInt32(this.rptr, true);
+    data = this.sound.getInt32(this.rptr, true);
 
   this.rptr += this.inc;
   return data;
