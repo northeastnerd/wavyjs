@@ -37,15 +37,27 @@ html5_snd.prototype.init = function(err_cb){
 
 html5_snd.prototype.play = function(snd){
   var ctx = this.audio_ctx;
+  var me = this;
   this.audio_ctx.decodeAudioData(snd).then(
     function(bfr){
-      var src = ctx.createBufferSource();
-      src.buffer = bfr;
-      src.connect(ctx.destination);
-      src.start();
+      if(me.is_playing)
+        me.stop();
+      me.is_playing = true;
+      me.src = ctx.createBufferSource();
+      me.src.buffer = bfr;
+      me.src.connect(ctx.destination);
+      me.src.loop = false;
+      me.src.start();
     },
     function(e){out.innerHTML += "decoding failed: " + e + "<br>";}
   );
+};
+
+html5_snd.prototype.stop = function(){
+  if(typeof this.src != "undefined"){
+    this.src.stop();
+  }
+  this.is_playing = false;
 };
 
 var sound = new html5_snd;
@@ -62,7 +74,6 @@ document.getElementById("user").onchange = function(){
 };
 
 function do_tremelo(){
-  delete tremelo;
   tremelo = new wavyjs;
   tremelo.make(user.channels, user.rate, user.bits, user.samples);
   var p1 = document.getElementById("period1").value * user.rate;
@@ -80,26 +91,35 @@ function do_tremelo(){
 }
 
 function process(){
-  console.log("creating tremelo");
+  out.innerHTML += "creating tremelo...<br>";
   var start = new Date();
-  do_tremelo();
-  console.log("tremelo ready");
-  elapsed_time(start);
+  function do_tr(){
+    do_tremelo();
+    out.innerHTML += "tremelo ready<br>";
+    elapsed_time(start);
+  };
+  setTimeout(do_tr, 10);
 };
 
 function play(name){
-  if(name == "user")
+  if(name == "user"){
+    out.innerHTML += "playing sound...<br>";
     sound.play(user.audio());
-  if(name == "tremelo"){
-    console.log("playing sound");
+  } if(name == "tremelo"){
+    out.innerHTML += "playing sound<br>";
     sound.play(tremelo.audio());
-    console.log("sound playing");
+    out.innerHTML += "playing sound...<br>";
   }
+};
+
+function stop(){
+  sound.stop();
+  out.innerHTML += "sound stopped<br>";
 };
 
 function save(name){
   console.log("saving wav file");
-  tremelo.save(name);
+  tremelo.save(tremelo.raw, name);
   console.log("saved");
 };
 
@@ -122,5 +142,5 @@ function show_params(){
 
 function elapsed_time(start){
   var end = new Date();
-  console.log("elapsed time: " + (end - start) / 1000.0 + " seconds");
+  out.innerHTML += "elapsed time: " + (end - start) / 1000.0 + " seconds<br>";
 }

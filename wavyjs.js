@@ -97,6 +97,9 @@ wavyjs.prototype.make = function(channels, smprate, bits, samples){
   for(s = 0; s < this.samples; s++)
     for(c = 0; c < channels; c++)
       this.set_sample(s, c, 0);
+
+  this.rptr = 44;
+  this.wptr = 44;
 };
 
 // waveform setters / getters

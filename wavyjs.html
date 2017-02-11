@@ -25,7 +25,7 @@
 
 <body>
 Load Wav File:<br>
-<input type=file id="user"></input><button onclick=play("user")>Play</button><br>
+<input type=file id="user"></input><button onclick=play("user")>Play</button><button onclick=stop()>Stop</button><br>
 Envelope Parameters:<br>
 Tremelo Period (Seconds):<input type=text id="period1"></input><br>
 <button onclick=process()>Make Tremelo</button><br>
@@ -33,6 +33,8 @@ Tremelo Period (Seconds):<input type=text id="period1"></input><br>
 <button onclick=save("tremelo.wav")>Save Tremelo</button><br>
 <script src="https://rawgit.com/northeastnerd/wavyjs/master/wavyjs.js"></script>
 <script src="https://rawgit.com/northeastnerd/wavyjs/master/wavy_example.js"></script>
+<!-- script src="scripts/wavyjs.js"></script-->
+<!-- script src="scripts/wavy_example.js"></script-->
 <div id="out"></div>
 <div id="dump"></div>
 </body>
