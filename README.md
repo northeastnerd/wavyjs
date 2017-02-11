@@ -15,6 +15,11 @@ The example reads a Wav file and traverses it to find the peak amplitude which i
 Have fun!
 
 # Status
+## Version 0.2
+There were some problems with consistency in internal function calling parameters that were causing the mix function to generate clicks and distortion, which are now fixed.
+
+Preliminary 24 bit sample support was added.
+
 ## Version 0.1
 Performance enhancements done, it is 5x-10x faster now, and is usable for song length material. It processes Wav data at roughly 6 mB / Sec. Traversing a 4 minute CD quality track takes about 10 seconds on the machine described below (not speedy). Read-modify-write on the same track takes 20 seconds (done in the demo).  On a desktop quad core Q8400 cpu with 8 gB of memory running Chrome it takes about 7 seconds for the r-m-w (I guess it's time for a new laptop :). Firefox takes 9 seconds on the same conversion and plays fine, the Edge browser takes 45 seconds for the same conversion and is persnickity about playing the result.
 
