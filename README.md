@@ -14,6 +14,8 @@ The example reads a Wav file and traverses it to find the peak amplitude which i
 
 Have fun!
 
+There is a live demo here: https://rawgit.com/northeastnerd/wavyjs/master/wavyjs.html
+
 # Status
 ## Version 0.2
 There were some problems with consistency in internal function calling parameters that were causing the mix function to generate clicks and distortion, which are now fixed.
@@ -31,6 +33,3 @@ Still no tests, and expect there are some unsupported formats as a result.
 The library works in all browsers, the demo is working for all the Wav files I tried with Chrome v.50, Firefox 46 and Edge v25.10586.0.0. No formal testing and I believe there are functional gaps (all permutations of Wav formats).
 
 Performance with large files (40 MB) is an issue - traversing a 40.9 MB file from begin to end takes roughly 66 seconds on a dual core N2840 running Chrome 50 and traversing, manipulating and writing a modified version of the same file in memory takes 110 seconds. Current performance is ~700 KB/s. For small Wav files (samples) it's reasonable, for larger files (songs) this may not be an ideal solution.
-
-There is a live demo here: http://northeastnerd.net/northeastnerd.html?post=3
-
