@@ -23,6 +23,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 function wavyjs(){
   this.me       = wavyjs.count++;
+  this.filename = "";
   this.rptr     = 0;
   this.wptr     = 0;
   this.fmt      = 0;
@@ -104,9 +105,11 @@ wavyjs.prototype.make = function(channels, smprate, bits, samples){
 
 // waveform setters / getters
 wavyjs.prototype.set_sample = function(idx, chan, data){
-  var offset = (this.channels * this.bits / 8) * idx + this.data + 8 + chan * this.bits / 8; // 4 + chan * this.bits / 8;
+  var safe_idx = Math.round(idx);
+  var safe_chan = (chan > (this.channels - 1)) ? 0 : chan;
+  var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + safe_chan * this.bits / 8; 
   this.wptr = offset;
-  if((idx > this.samples) || 
+  if((safe_idx > this.samples) || 
      (offset >= this.raw.byteLength) ||
      (offset == undefined))
     return;
@@ -138,9 +141,10 @@ wavyjs.prototype.push_sample = function(data){
 
 wavyjs.prototype.get_sample = function(idx, chan){
   var safe_idx = Math.round(idx);
-  var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + chan * this.bits / 8; // 4 + chan * this.bits / 8;
+  var safe_chan = (chan > (this.channels - 1)) ? 0 : chan;
+  var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + safe_chan * this.bits / 8; 
   this.rptr = offset;
-  if((idx > this.samples) ||
+  if((safe_idx > this.samples) ||
      (offset > (this.raw.byteLength - (this.bits / 8))))
     return 0;
   var data;
@@ -197,6 +201,50 @@ wavyjs.prototype.save = function(data, name) {
 //  window.URL.revokeObjectURL(url);
 };
 
+wavyjs.prototype.bfr_to_b64 = function(bfr){
+  var i, bin = '';
+  var bytes = new Uint8Array(bfr);
+  var len = bytes.byteLength;
+
+  for(i = 0; i < len; i++)
+    bin += String.fromCharCode(bytes[i]);
+
+  return window.btoa(bin);
+}
+
+wavyjs.prototype.b64_to_bfr = function(b64){
+  var i, bin_str = window.atob(b64);
+  var len = bin_str.length;
+  var bytes = new Uint8Array(len);
+
+  for(i = 0; i < len; i++)
+    bytes[i] = bin_str.charCodeAt(i);
+
+  return bytes.buffer;
+}
+
+wavyjs.prototype.to_json = function(){
+  var wav, txt;
+  wav = this;
+  wav.raw = this.bfr_to_b64(this.raw);
+  var txt = JSON.stringify(wav);
+
+  return txt;
+};
+
+wavyjs.prototype.from_json = function(data){
+  var a, wav = new wavyjs;
+
+  for(p in data){
+    if(data.hasOwnProperty(p))
+    wav[p] = data[p];
+  }
+  wav.raw = wav.b64_to_bfr(data.raw);
+  wav.parse_header();
+
+  return wav;
+};
+
 wavyjs.prototype.load_url = function(url, ok_callb, err_callb) {
   var request = new XMLHttpRequest();
   request.open('GET', url, true);
@@ -220,12 +268,14 @@ wavyjs.prototype.load_file = function(selected, ok_callb, err_callb) {
       var size   = files[x].size;
       var reader = new FileReader;
       var wavptr = this;
+      var fname  = files[x].name;
       reader.onload = (function(afile){
         return function(e){
-          wavptr.raw   = e.target.result;
-          wavptr.sound = new DataView(wavptr.raw);
-          wavptr.fmt   = 12;
-          wavptr.data  = 36;
+          wavptr.raw      = e.target.result;
+          wavptr.sound    = new DataView(wavptr.raw);
+          wavptr.fmt      = 12;
+          wavptr.data     = 36;
+          wavptr.filename = fname;
           for(var y = 0; y < 1024; y++){
             var sig = wavptr.sound.getInt32(y, false);
             if(sig == 0x666d7420)
