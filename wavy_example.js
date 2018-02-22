@@ -75,17 +75,18 @@ document.getElementById("user").onchange = function(){
 
 function do_tremelo(){
   tremelo = new wavyjs;
-  tremelo.make(user.channels, user.rate, user.bits, user.samples);
+  tremelo.make(user.channels, user.rate, user.bits, user.samples, user.type);
   var p1 = document.getElementById("period1").value * user.rate;
   var len = tremelo.samples;
   var amp = user.get_sample(0, 0);
-  for(var x = 0; x < len; x++){
-    amp = user.pop_sample();
-    amp = parseInt(amp * Math.cos(x / p1 * 2 * 3.14159));
-    tremelo.push_sample(amp);
-    for(var ch = 1; ch < user.channels; ch++){
-      amp = user.pop_sample();
-      tremelo.push_sample(amp);
+  var ch;
+  for(var ch = 0; ch < user.channels; ch++){
+    for(var x = 0; x < len; x++){
+      amp = user.get_sample(x, ch);
+      amp = amp * Math.cos(x / p1 * 2 * 3.14159);
+      if(user.type == 0x1)
+        amp = parseInt(amp);
+      tremelo.set_sample(x, ch, amp);
     }
   }
 }

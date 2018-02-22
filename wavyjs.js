@@ -22,6 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 function wavyjs(){
+  "use strict";
   this.me       = wavyjs.count++;
   this.filename = "";
   this.rptr     = 0;
@@ -33,6 +34,7 @@ function wavyjs(){
   this.bits     = 0;
   this.bytes    = 0;
   this.inc      = 0;
+  this.type     = 0;
   this.samples  = 0;
   this.raw      = null;
   this.sound    = null;
@@ -46,10 +48,12 @@ wavyjs.count    = 0;
 
 // 24 bit typed array access functions
 DataView.prototype.getInt24 = function(idx){
+  "use strict";
   return (this.getInt16(idx) << 8) + this.getInt8(idx + 2);
 }
  
 DataView.prototype.setInt24 = function(idx, val){
+  "use strict";
   this.setInt16(idx, val >> 8);
   this.setInt8(idx + 2, val & 0xff);
 }
@@ -63,11 +67,12 @@ DataView.prototype.setInt24 = function(idx, val){
 // children of the RIFF chunk. All numeric and data values
 // are stored little endian (LSB first) because this is 
 // a Windows format.
-wavyjs.prototype.make = function(channels, smprate, bits, samples){
+wavyjs.prototype.make = function(channels, smprate, bits, samples, data_enc = 0x1){
   this.channels = channels;
   this.rate     = smprate;
   this.bits     = bits;
   this.inc      = bits / 8;
+  this.type     = data_enc;
   this.bytes    = this.inc * channels;
   this.inc      = bits / 8;
   this.samples  = Math.round(samples);
@@ -85,7 +90,8 @@ wavyjs.prototype.make = function(channels, smprate, bits, samples){
   this.sound.setInt32(8,  0x57415645, false); // "WAVE"                 big     L____ up to here must match exact
   this.sound.setInt32(12, 0x666d7420, false); // "fmt "                 big     <---- might not be fmt chunk, skip unknown
   this.sound.setInt16(16, 16,         true);  // header size            little        LIST chunk in ex, len = 180(xb4)
-  this.sound.setInt16(20, 1,          true);  // format tag 1 = PCM     little  <---- len of fmt chunk in ex is 18, not 16
+  this.sound.setInt16(20, this.type,  true);  // format tag 1 = PCM     little  <---- len of fmt chunk in ex is 18, not 16
+                                              // format tag 3 = IEEE floating point
   this.sound.setInt16(22, channels,   true);  // channels 1 = mono      little  <---- force invsible INFO? chunk w/"wavyjs" 
   this.sound.setInt32(24, smprate,    true);  // sample rate            little  <---- sort out info/list headers: title in plyr
   this.sound.setInt32(28, byterate,   true);  // bytes/sec              little
@@ -105,6 +111,7 @@ wavyjs.prototype.make = function(channels, smprate, bits, samples){
 
 // waveform setters / getters
 wavyjs.prototype.set_sample = function(idx, chan, data){
+  "use strict";
   var safe_idx = Math.round(idx);
   var safe_chan = (chan > (this.channels - 1)) ? 0 : chan;
   var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + safe_chan * this.bits / 8; 
@@ -119,11 +126,14 @@ wavyjs.prototype.set_sample = function(idx, chan, data){
     this.sound.setInt16(offset, data, true);
   else if(this.bits == 24)
     this.sound.setInt24(offset, data, true);
-  else if(this.bits == 32)
+  else if((this.bits == 32) && (this.type == 0x1))
     this.sound.setInt32(offset, data, true);
+  else if((this.bits == 32) && (this.type == 0x3))
+    this.sound.setFloat32(offset, data, true);
 };
 
 wavyjs.prototype.push_sample = function(data){
+  "use strict";
   if((this.wptr >= this.raw.byteLength) ||
      (this.wptr == undefined))
     return;
@@ -134,12 +144,15 @@ wavyjs.prototype.push_sample = function(data){
     this.sound.setInt16(this.wptr, data, true);
   else if(this.bits == 24)
     this.sound.setInt24(this.wptr, data, true);
-  else if(this.bits == 32)
+  else if((this.bits == 32) && (this.type == 0x1))
     this.sound.setInt32(this.wptr, data, true);
+  else if((this.bits == 32) && (this.type == 0x3))
+    this.sound.setFloat32(this.wptr, data, true);
   this.wptr += this.inc;
 };
 
 wavyjs.prototype.get_sample = function(idx, chan){
+  "use strict";
   var safe_idx = Math.round(idx);
   var safe_chan = (chan > (this.channels - 1)) ? 0 : chan;
   var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + safe_chan * this.bits / 8; 
@@ -154,13 +167,16 @@ wavyjs.prototype.get_sample = function(idx, chan){
     data = this.sound.getInt16(offset, true);
   else if(this.bits == 24)
     data = this.sound.getInt24(offset, true);
-  else if(this.bits == 32)
+  else if((this.bits == 32) && (this.type == 0x1))
     data = this.sound.getInt32(offset, true);
+  else if((this.bits == 32) && (this.type == 0x3))
+    data = this.sound.getFloat32(offset, true);
 
   return data;
 };
 
 wavyjs.prototype.pop_sample = function(){
+  "use strict";
   if((this.rptr >= this.raw.byteLength) ||
      (this.rptr == undefined))
     return NaN;
@@ -172,17 +188,21 @@ wavyjs.prototype.pop_sample = function(){
     data = this.sound.getInt16(this.rptr, true);
   else if(this.bits == 24)
     data = this.sound.getInt24(this.rptr, true);
-  else if(this.bits == 32)
+  else if((this.bits == 32) && (this.type == 0x1))
     data = this.sound.getInt32(this.rptr, true);
+  else if((this.bits == 32) && (this.type == 0x3))
+    data = this.sound.getFloat32(this.rptr, true);
 
   this.rptr += this.inc;
   return data;
 };
 
 wavyjs.prototype.audio = function(){
+  "use strict";
   var cp  = new ArrayBuffer(this.raw.byteLength);
   var dst = new Uint8Array(cp);
   var src = new Uint8Array(this.raw);
+  var x;
   for(x = 0; x < cp.byteLength; x++)
     dst[x] = src[x];
   return cp;
@@ -190,6 +210,7 @@ wavyjs.prototype.audio = function(){
 
 // file i/o routines
 wavyjs.prototype.save = function(data, name) {
+  "use strict";
   var a    = document.createElement("a");
   document.body.appendChild(a);
   a.style  = "display: none";
@@ -202,6 +223,7 @@ wavyjs.prototype.save = function(data, name) {
 };
 
 wavyjs.prototype.bfr_to_b64 = function(bfr){
+  "use strict";
   var i, bin = '';
   var bytes = new Uint8Array(bfr);
   var len = bytes.byteLength;
@@ -213,6 +235,7 @@ wavyjs.prototype.bfr_to_b64 = function(bfr){
 }
 
 wavyjs.prototype.b64_to_bfr = function(b64){
+  "use strict";
   var i, bin_str = window.atob(b64);
   var len = bin_str.length;
   var bytes = new Uint8Array(len);
@@ -224,6 +247,7 @@ wavyjs.prototype.b64_to_bfr = function(b64){
 }
 
 wavyjs.prototype.to_json = function(){
+  "use strict";
   var wav, txt;
   wav = this;
   wav.raw = this.bfr_to_b64(this.raw);
@@ -233,6 +257,7 @@ wavyjs.prototype.to_json = function(){
 };
 
 wavyjs.prototype.from_json = function(data){
+  "use strict";
   var a, wav = new wavyjs;
 
   for(p in data){
@@ -246,6 +271,7 @@ wavyjs.prototype.from_json = function(data){
 };
 
 wavyjs.prototype.load_url = function(url, ok_callb, err_callb) {
+  "use strict";
   var request = new XMLHttpRequest();
   request.open('GET', url, true);
   request.responseType = 'arraybuffer';
@@ -262,6 +288,7 @@ wavyjs.prototype.load_url = function(url, ok_callb, err_callb) {
 }
 
 wavyjs.prototype.load_file = function(selected, ok_callb, err_callb) {
+  "use strict";
   if(window.File && window.FileReader && window.FileList && window.Blob){
     var files = selected.files;
     for(var x = 0; x < files.length; x++){
@@ -295,9 +322,12 @@ wavyjs.prototype.load_file = function(selected, ok_callb, err_callb) {
 }
 
 wavyjs.prototype.parse_header = function(){
+  "use strict";
+  var ch, smp, raw, flt, raw_view, dec;
   if(this.raw == null)
     return 0;
   this.sound    = new DataView(this.raw);
+  this.type     = this.sound.getInt16(this.fmt + 8,  true);
   this.bytes    = this.sound.getInt16(this.fmt + 20, true);
   this.channels = this.sound.getInt16(this.fmt + 10, true);
   this.rate     = this.sound.getInt32(this.fmt + 12, true);
@@ -307,9 +337,14 @@ wavyjs.prototype.parse_header = function(){
   this.samples  = len / this.channels / (this.bits / 8);
   this.rptr     = this.data + 8; 
   this.wptr     = this.data + 8; 
+
+  // check if the imported data is floating point, if so convert it
+  if(this.type == 0x3)
+    console.log("NOTE: WAV file data is floating point.");
 }
 
 wavyjs.prototype.get_stats = function(){
+  "use strict";
   var ch, idx, smp;
   for(ch = 0; ch < this.channels; ch++){
     this.max[ch]     = 0;
