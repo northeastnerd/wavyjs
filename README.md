@@ -1,5 +1,5 @@
 # wavyjs
-javascript RIFF Wav file manipulation routines
+Zero dependency javascript RIFF Wav file manipulation routines.
 
 # Usage
 These routines do creation and manipulation of Wav file structures in browser memory. The intended uses are for generating sounds from algorithms and / or manipulating existing sound files loaded from files or URLs. Modified results can be saved as Wav files or played as desired.
