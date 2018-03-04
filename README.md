@@ -17,6 +17,9 @@ Have fun!
 There is a live demo here: https://rawgit.com/northeastnerd/wavyjs/master/wavyjs.html
 
 # Status
+## Version 0.3
+32 bit floating point sample support was added, project is stable and in use for a while.
+
 ## Version 0.2
 There were some problems with consistency in internal function calling parameters that were causing the mix function to generate clicks and distortion, which are now fixed.
 
