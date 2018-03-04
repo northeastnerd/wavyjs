@@ -367,14 +367,6 @@ wavyjs.prototype.get_stats = function(){
   this.max_idx = idx / this.channels;
 }
 
-// wavyjs.prototype.reformat = function(sound1, sound2){} returns sound1 formatted in sound2 format
-//   for channel expansion from m to n, m/n amplitude on all n chans
-//   re-sample, scale bits as needed
-// wavyjs.prototype.pan     = function(start, end){} params are 0-1, 0 = left, 1 = right
-// wavyjs.prototype.fade    = function(start, end){} fade from start * amp linear to end * amp
-// wavyjs.prototype.tremelo = function(min, max, rate){} sin(rate) * (max - min) + min * amp
-// wavyjs.prototype.reverb  = function(?){}
-
 wavyjs.prototype.mix = function(src, dst_offset, src_offset, vol = 1.0){
   var safe_s_off = Math.round(src_offset);
   var safe_d_off = Math.round(dst_offset);
