@@ -15,6 +15,10 @@ The example reads a Wav file and traverses it to find the peak amplitude which i
 Have fun!
 
 There is a live demo here: https://rawgit.com/northeastnerd/wavyjs/master/wavyjs.html
+and the library is used for audio back end in applications below for drum loops, frequency analysis and retro computer tape interfaces:
+https://www.webthinglabs.com/bopkit.html
+https://www.webthinglabs.com/audio_analyzer.html
+https://www.webthinglabs.com/retro_wav.html
 
 # Status
 ## Version 0.3
