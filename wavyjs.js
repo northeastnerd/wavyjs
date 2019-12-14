@@ -74,7 +74,6 @@ wavyjs.prototype.make = function(channels, smprate, bits, samples, data_enc = 0x
   this.inc      = bits / 8;
   this.type     = data_enc;
   this.bytes    = this.inc * channels;
-  this.inc      = bits / 8;
   this.samples  = Math.round(samples);
   var total     = 44 + this.samples * channels * bits / 8;
   var byterate  = smprate * bits / 8 * channels;
@@ -115,25 +114,30 @@ wavyjs.prototype.set_sample = function(idx, chan, data){
   var safe_idx = Math.round(idx);
   var safe_chan = (chan > (this.channels - 1)) ? 0 : chan;
   var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + safe_chan * this.bits / 8; 
+  var safe_data = (this.type == 0x3) ? data : Math.round(data);
   this.wptr = offset;
+  if(this.raw == null)
+    return;
   if((safe_idx > this.samples) || 
      (offset >= this.raw.byteLength) ||
      (offset == undefined))
     return;
-  if(this.bits == 8)
-    this.sound.setUint8(offset, data + 128);
-  else if(this.bits == 16)
-    this.sound.setInt16(offset, data, true);
-  else if(this.bits == 24)
-    this.sound.setInt24(offset, data, true);
-  else if((this.bits == 32) && (this.type == 0x1))
-    this.sound.setInt32(offset, data, true);
-  else if((this.bits == 32) && (this.type == 0x3))
-    this.sound.setFloat32(offset, data, true);
+  if(this.bits == 8){
+    this.sound.setUint8(offset, safe_data + 128);
+  } else if(this.bits == 16){
+    this.sound.setInt16(offset, safe_data, true);
+  } else if(this.bits == 24){
+    this.sound.setInt24(offset, safe_data, true);
+  } else if((this.bits == 32) && (this.type == 0x1)){
+    this.sound.setInt32(offset, safe_data, true);
+  } else if((this.bits == 32) && (this.type == 0x3))
+    this.sound.setFloat32(offset, safe_data, true);
 };
 
 wavyjs.prototype.push_sample = function(data){
   "use strict";
+  if(this.raw == null)
+    return;
   if((this.wptr >= this.raw.byteLength) ||
      (this.wptr == undefined))
     return;
@@ -157,6 +161,8 @@ wavyjs.prototype.get_sample = function(idx, chan){
   var safe_chan = (chan > (this.channels - 1)) ? 0 : chan;
   var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + safe_chan * this.bits / 8; 
   this.rptr = offset;
+  if(this.raw == null)
+    return NaN;
   if((safe_idx > this.samples) ||
      (offset > (this.raw.byteLength - (this.bits / 8))))
     return 0;
@@ -177,6 +183,8 @@ wavyjs.prototype.get_sample = function(idx, chan){
 
 wavyjs.prototype.pop_sample = function(){
   "use strict";
+  if(this.raw == null)
+    return NaN;
   if((this.rptr >= this.raw.byteLength) ||
      (this.rptr == undefined))
     return NaN;
@@ -199,7 +207,8 @@ wavyjs.prototype.pop_sample = function(){
 
 wavyjs.prototype.audio = function(){
   "use strict";
-  var cp  = new ArrayBuffer(this.raw.byteLength);
+  var len = this.raw == null ? 0 : this.raw.byteLength;
+  var cp  = new ArrayBuffer(len);
   var dst = new Uint8Array(cp);
   var src = new Uint8Array(this.raw);
   var x;
@@ -251,14 +260,14 @@ wavyjs.prototype.to_json = function(){
   var wav, txt;
   wav = this;
   wav.raw = this.bfr_to_b64(this.raw);
-  var txt = JSON.stringify(wav);
+  txt = JSON.stringify(wav);
 
   return txt;
 };
 
 wavyjs.prototype.from_json = function(data){
   "use strict";
-  var a, wav = new wavyjs;
+  var a, p, wav = new wavyjs;
 
   for(p in data){
     if(data.hasOwnProperty(p))
@@ -366,6 +375,63 @@ wavyjs.prototype.get_stats = function(){
     idx += this.max_idx[ch];
   this.max_idx = idx / this.channels;
 }
+
+wavyjs.prototype.resample = function(rate, bits){
+  "use strict";
+  var s, c, s1, s2, sx, dx, si, di, dn, rs, delta;
+
+  // if there's nothing to do just return
+  if((rate == this.rate) && (bits == this.bits))
+    return this;
+
+  // figure out time increment of new and old formats
+  si = 1 / this.rate;
+  di = 1 / rate;
+  dn = Math.round(this.samples * rate / this.rate);
+
+  // create a new object to hold the resampled data
+  rs = new wavyjs;
+  rs.make(this.channels, rate, bits, dn);
+
+  // loop through re-sampling to new array
+  for(c = 0; c < this.channels; c++){
+    for(dx = 0; dx < dn; dx++){
+      sx = Math.trunc(dx * di / si);
+      s1 = this.get_sample(sx, c);
+      s2 = this.get_sample(sx + 1, c);
+      delta = dx * di - sx * si;
+      s = s1 + (s2 - s1) * delta / si;
+      if(this.type == 0x3)
+        s = this.float_to_int(s, bits);
+      rs.set_sample(dx, c, s);
+    }
+  }
+
+  // return re-sampled data
+  return rs;
+}
+
+wavyjs.prototype.float_to_int = function(val, bits){
+  "use strict";
+  var max = Math.pow(2, (bits - 1));
+  var ival = val * max;
+  return ival;
+}
+
+wavyjs.prototype.int_to_float = function(val, bits){
+  "use strict";
+  var max = Math.pow(2, (bits - 1));
+  var fval = val / max;
+  return fval;
+}
+
+// wavyjs.prototype.reformat = function(sound1, sound2){} returns sound1 formatted in sound2 format
+//   for channel expansion from m to n, m/n amplitude on all n chans
+//   re-sample, scale bits as needed
+// wavyjs.prototype.pan     = function(start, end){} params are 0-1, 0 = left, 1 = right
+// wavyjs.prototype.fade    = function(start, end){} fade from start * amp linear to end * amp
+// wavyjs.prototype.tremelo = function(min, max, rate){} sin(rate) * (max - min) + min * amp
+// wavyjs.prototype.reverb  = function(?){}
 
 wavyjs.prototype.mix = function(src, dst_offset, src_offset, vol = 1.0){
   var safe_s_off = Math.round(src_offset);
