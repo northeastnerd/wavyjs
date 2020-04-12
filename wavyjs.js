@@ -41,21 +41,30 @@ function wavyjs(){
   this.max      = [];
   this.max_idx  = [];
   this.avg      = [];
+  this.abslim   = 0;
 };
 
 // instance counter
 wavyjs.count    = 0;
 
-// 24 bit typed array access functions
+// little endian 24 bit access (ls byte first)
 DataView.prototype.getInt24 = function(idx){
   "use strict";
-  return (this.getInt16(idx) << 8) + this.getInt8(idx + 2);
+  var val = this.getUint8(idx) + (this.getUint8(idx + 1) << 8) + (this.getUint8(idx + 2) << 16);
+  if(val & 0x800000)
+    val = val - 0x1000000;
+  return val;
 }
  
+// little endian 24 bit storage (ls byte first)
 DataView.prototype.setInt24 = function(idx, val){
   "use strict";
-  this.setInt16(idx, val >> 8);
-  this.setInt8(idx + 2, val & 0xff);
+  var pval = val;
+  if(val < 0)
+    pval = val + 0x1000000;
+  this.setUint8(idx, pval & 0xff);
+  this.setUint8(idx + 1, (pval & 0xff00) >> 8);
+  this.setUint8(idx + 2, (pval & 0xff0000) >> 16);
 }
 
 // This method allocates space for waveform data in the 
@@ -71,6 +80,7 @@ wavyjs.prototype.make = function(channels, smprate, bits, samples, data_enc = 0x
   this.channels = channels;
   this.rate     = smprate;
   this.bits     = bits;
+  this.abslim   = Math.pow(2, (bits - 1));
   this.inc      = bits / 8;
   this.type     = data_enc;
   this.bytes    = this.inc * channels;
@@ -113,7 +123,7 @@ wavyjs.prototype.set_sample = function(idx, chan, data){
   "use strict";
   var safe_idx = Math.round(idx);
   var safe_chan = (chan > (this.channels - 1)) ? 0 : chan;
-  var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + safe_chan * this.bits / 8; 
+  var offset = (this.channels * this.inc) * safe_idx + this.data + 8 + safe_chan * this.inc; 
   var safe_data = (this.type == 0x3) ? data : Math.round(data);
   this.wptr = offset;
   if(this.raw == null)
@@ -159,12 +169,14 @@ wavyjs.prototype.get_sample = function(idx, chan){
   "use strict";
   var safe_idx = Math.round(idx);
   var safe_chan = (chan > (this.channels - 1)) ? 0 : chan;
-  var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + safe_chan * this.bits / 8; 
+//  var offset = (this.channels * this.bits / 8) * safe_idx + this.data + 8 + safe_chan * this.bits / 8; 
+  var offset = (this.channels * this.inc) * safe_idx + this.data + 8 + safe_chan * this.inc; 
   this.rptr = offset;
   if(this.raw == null)
     return NaN;
   if((safe_idx > this.samples) ||
-     (offset > (this.raw.byteLength - (this.bits / 8))))
+     (offset > (this.raw.byteLength - this.inc)))
+//     (offset > (this.raw.byteLength - (this.bits / 8))))
     return 0;
   var data;
   if(this.bits == 8)
@@ -341,9 +353,13 @@ wavyjs.prototype.parse_header = function(){
   this.channels = this.sound.getInt16(this.fmt + 10, true);
   this.rate     = this.sound.getInt32(this.fmt + 12, true);
   this.bits     = this.sound.getInt16(this.fmt + 22, true);
-  this.inc      = this.bits / 8;
+  if(this.type == 0x3)
+    this.abslim = 1.0;
+  else
+    this.abslim = Math.pow(2, (this.bits - 1));
+  this.inc      = this.bits / 8; // this.bytes;
   var len       = this.sound.getInt32(this.data + 4, true); 
-  this.samples  = len / this.channels / (this.bits / 8);
+  this.samples  = len / this.channels / this.inc; // (this.bits / 8);
   this.rptr     = this.data + 8; 
   this.wptr     = this.data + 8; 
 
@@ -378,7 +394,7 @@ wavyjs.prototype.get_stats = function(){
 
 wavyjs.prototype.resample = function(rate, bits){
   "use strict";
-  var s, c, s1, s2, sx, dx, si, di, dn, rs, delta;
+  var s, c, s1, s2, sx, dx, si, di, dn, rs, delta, scale;
 
   // if there's nothing to do just return
   if((rate == this.rate) && (bits == this.bits))
@@ -388,6 +404,9 @@ wavyjs.prototype.resample = function(rate, bits){
   si = 1 / this.rate;
   di = 1 / rate;
   dn = Math.round(this.samples * rate / this.rate);
+
+  // figure out scale factor for old to new format
+  scale = Math.pow(2, bits - 1) / Math.pow(2, this.bits - 1);
 
   // create a new object to hold the resampled data
   rs = new wavyjs;
@@ -401,6 +420,7 @@ wavyjs.prototype.resample = function(rate, bits){
       s2 = this.get_sample(sx + 1, c);
       delta = dx * di - sx * si;
       s = s1 + (s2 - s1) * delta / si;
+      s = s * scale;
       if(this.type == 0x3)
         s = this.float_to_int(s, bits);
       rs.set_sample(dx, c, s);
@@ -449,3 +469,39 @@ wavyjs.prototype.mix = function(src, dst_offset, src_offset, vol = 1.0){
     }
   }
 }
+
+// this returns an object with a clip of a portion of the sound in 
+// the wav file at the given indices
+wavyjs.prototype.copy_clip = function(start, end){
+  "use strict";
+  var safe_start = Math.trunc(start);
+  var safe_end = Math.trunc(end);
+  var bytes = this.bytes * (safe_end - safe_start);
+  var smps = new ArrayBuffer(bytes);
+  var dst = new Uint8Array(smps);
+  var src = new Uint8Array(this.raw);
+  var s, b;
+  for(s = safe_start; s < safe_end; s++){
+    for(b = 0; b < this.bytes; b++){
+      dst[(s - safe_start) * this.bytes + b] = src[44 + s * this.bytes + b];
+    }
+  }
+
+  var clip = {start: safe_start, end: safe_end, type: this.type, data: smps};
+  return clip;
+};
+
+// this takes an object in the format of copy_clip and pastes it into 
+// the wav file at the given indices
+wavyjs.prototype.paste_clip = function(clip){
+  "use strict";
+  var dst = new Uint8Array(this.raw);
+  var src = new Uint8Array(clip.data);
+  var bytes = this.bytes * (clip.end - clip.start);
+  var s, b;
+  for(s = clip.start; s < clip.end; s++){
+    for(b = 0; b < this.bytes; b++){
+      dst[44 + s * this.bytes + b] = src[(s - clip.start) * this.bytes + b];
+    }
+  }
+};
